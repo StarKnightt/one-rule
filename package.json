@@ -1,0 +1,19 @@
+{
+  "name": "one-rule",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "render": "pnpm build && tsx scripts/render.ts",
+    "frames": "tsx scripts/stills.ts"
+  },
+  "devDependencies": {
+    "@types/node": "22.9.0",
+    "playwright": "1.56.1",
+    "tsx": "4.19.2",
+    "typescript": "5.6.3",
+    "vite": "5.4.10"
+  }
+}
