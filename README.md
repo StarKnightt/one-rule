@@ -47,7 +47,9 @@ scripts/critic-frames.sh # pull comparison frames out of the finished video
 `pnpm render` builds with Vite and serves the build. It drives headless
 Chromium through Playwright, using the preinstalled browser, and never runs
 `playwright install`. Every frame is drawn from its frame index alone, so the
-render is deterministic. Frames go out as PNG to parallel ffmpeg/x264
-encoders, the segments are concatenated, and the mastered audio is muxed in.
+render is deterministic. Frames go out as PNG into lossless RGB
+segments, rendered in parallel. A two-pass x264 `veryslow` encode then
+sizes the delivery file to `TARGET_MB` (default 96 MB, which keeps it under
+GitHub's 100 MiB file cap) and muxes in the mastered audio as 320 kbps AAC.
 
 See [CRITIC.md](CRITIC.md) for the comparison pass and what it changed.

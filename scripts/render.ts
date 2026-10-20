@@ -55,14 +55,13 @@ const segs = await Promise.all(
   [...Array(WORKERS)].map(async (_, w) => {
     const from = w * chunk;
     const to = Math.min(LIMIT, from + chunk);
-    const file = `build/seg-${w}.mp4`;
+    const file = `build/seg-${w}.mkv`;
     const page = await newPage();
     const enc = spawn('ffmpeg', [
       '-hide_banner', '-loglevel', 'error', '-y',
       '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'png', '-i', '-',
-      '-c:v', 'libx264', '-preset', 'slow', '-crf', '16', '-tune', 'film',
-      '-pix_fmt', 'yuv420p', '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709',
-      '-g', '120', '-threads', '2', file,
+      // lossless RGB intermediate; the single delivery encode happens below
+      '-c:v', 'libx264rgb', '-preset', 'ultrafast', '-qp', '0', '-pix_fmt', 'rgb24', '-threads', '2', file,
     ], { stdio: ['pipe', 'inherit', 'inherit'] });
     const exited = new Promise<void>((res, rej) => enc.on('close', (c) => (c === 0 ? res() : rej(new Error(`ffmpeg ${c}`)))));
     for (let f = from; f < to; f++) {
@@ -82,11 +81,25 @@ const segs = await Promise.all(
 await close();
 
 writeFileSync('build/segments.txt', segs.map((s) => `file '${s.replace('build/', '')}'`).join('\n'));
-ff([
-  '-f', 'concat', '-safe', '0', '-i', 'build/segments.txt', '-i', 'build/audio.wav',
-  '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-ar', '48000',
-  '-t', String(LIMIT / FPS), '-movflags', '+faststart', OUT,
-]);
+
+// Delivery encode: two-pass x264 sized to fill TARGET_MB (default 96 MB, under
+// GitHub's 100 MiB per-file cap) with as much picture as it will hold.
+const TARGET_MB = Number(process.env.TARGET_MB ?? 96);
+const AUDIO_BPS = 320_000;
+const secs = LIMIT / FPS;
+const videoBps = Math.floor(((TARGET_MB * 1e6 * 8) / secs - AUDIO_BPS) * 0.985);
+console.log(`encoding at ${(videoBps / 1e6).toFixed(2)} Mbps video for a ${TARGET_MB} MB file`);
+const input = ['-f', 'concat', '-safe', '0', '-i', 'build/segments.txt'];
+const x264 = [
+  '-vf', 'scale=out_color_matrix=bt709:out_range=tv,format=yuv420p',
+  '-c:v', 'libx264', '-preset', 'veryslow', '-tune', 'film', '-profile:v', 'high', '-level', '4.2',
+  '-b:v', String(videoBps), '-maxrate', String(Math.round(videoBps * 2)), '-bufsize', String(Math.round(videoBps * 4)),
+  '-g', '120', '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv',
+  '-passlogfile', 'build/x264pass',
+];
+ff([...input, ...x264, '-pass', '1', '-an', '-f', 'null', '-']);
+ff([...input, '-i', 'build/audio.wav', ...x264, '-pass', '2', '-map', '0:v', '-map', '1:a',
+  '-c:a', 'aac', '-b:a', String(AUDIO_BPS), '-ar', '48000', '-t', String(secs), '-movflags', '+faststart', OUT]);
 for (const s of segs) rmSync(s);
 const fin = lufs(OUT);
 console.log(`wrote ${OUT} in ${((performance.now() - t0) / 1000).toFixed(0)}s · final ${fin.I} LUFS · true peak ${fin.TP} dBFS`);
