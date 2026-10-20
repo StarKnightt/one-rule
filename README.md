@@ -12,11 +12,19 @@ Full video: [`output/one-rule.mp4`](output/one-rule.mp4) (1080p, 60 fps, 45 s, w
 X(n) → F(n) [ X(n−1) ] [ X(n−2) ]
 ```
 
+<img src="docs/rule.svg" alt="The first seven rewrites of the rule, drawn as trees: 1, 2, 4, 7, 12, 20 and 33 segments" width="100%">
+
 Read it as: *every branch `F` keeps going (the first bracket) and throws off one smaller side branch (the second bracket).* Start from `X(22)`, apply the rule until nothing is left to rewrite, and you get a branching structure of 46,367 segments. That count is a Fibonacci number minus one, because each branch spawns copies of itself one and two steps smaller.
 
 ## How one rule becomes six things
 
 Nothing is swapped out between scenes: there is only ever this one structure. Each scene is a different *layout* of the same segments, meaning a different angle, length and thickness for each one. A segment a scene doesn't need shrinks to a point and waits to grow back later. To move from one scene to the next, each segment's angle, length and width blend toward their new values. The change starts at the root and travels out to the tips, so you watch the same branches bend into a new shape rather than see a cut.
+
+<img src="docs/forms.jpg" alt="The six scenes: tree, fern, lightning, river delta, lungs, forest at dusk" width="100%">
+
+<img src="docs/morph.jpg" alt="Five frames of the tree turning into the fern: the same branches bend into a new shape" width="100%">
+
+*Tree to fern in 2 seconds. No segment is added or removed; they only bend, stretch and thin.*
 
 | scene | what the layout does |
 | --- | --- |
@@ -47,7 +55,10 @@ pnpm dev            # open http://localhost:5173/?play for a real-time preview w
                     # or /?frame=1850 to look at a single frame
 pnpm render         # → output/one-rule.mp4
 pnpm frames 690 1850   # render chosen frames to build/stills/
+pnpm diagrams          # redraw the diagrams in docs/
 ```
+
+<img src="docs/pipeline.svg" alt="Pipeline: rule → tree → six layouts → morph → Canvas frame → Playwright → lossless frames → two-pass x264; sound: timeline → Web Audio → master → mp4" width="100%">
 
 `pnpm render` builds the page with Vite and opens it in headless Chromium through Playwright. It then:
 
@@ -95,4 +106,5 @@ src/audio.ts       the soundtrack (Web Audio, OfflineAudioContext)
 src/timeline.ts    shared timing for picture and sound
 scripts/render.ts  frame-by-frame render and encode
 scripts/measure.ts the measurements in the table above
+scripts/diagrams.ts the README diagrams, drawn from the real rule
 ```

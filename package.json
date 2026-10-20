@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "render": "pnpm build && tsx scripts/render.ts",
-    "frames": "tsx scripts/stills.ts"
+    "frames": "tsx scripts/stills.ts",
+    "diagrams": "tsx scripts/diagrams.ts"
   },
   "devDependencies": {
     "@types/node": "22.9.0",
