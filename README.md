@@ -96,6 +96,8 @@ Limits:
 
 Full notes are in [CRITIC.md](CRITIC.md).
 
+The prompt this was built from is in [PROMPT.md](PROMPT.md).
+
 ## Layout
 
 ```
